@@ -5,6 +5,7 @@ using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 using Vintagestory.API.Common.Entities;
 using Vintagestory;
+using System.Collections.Generic;
 
 namespace OutgoingDamageLog
 {
@@ -13,49 +14,9 @@ namespace OutgoingDamageLog
     {
         public static ICoreAPI api;
         public Harmony harmony;
-        public override void Start(ICoreAPI api)
-        {
-            OutgoingDamageLogModSystem.api = api;
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(Entity), nameof(Entity.OnHurt))]
-        public static void OutgoingDamageLogPlayer(Entity __instance, DamageSource dmgSource, float damage)
-        {
-            IWorldAccessor World = __instance.World;
-            if (damage != 0 && World?.Side == EnumAppSide.Server)
-            {
-                string creatureName = Lang.Get("prefixandcreature-" + __instance.Code.Path.Replace("-", ""));
-                EntityPlayer eplr = dmgSource.GetCauseEntity() as EntityPlayer;
-                string msg = "";
-
-                if (dmgSource.Source == EnumDamageSource.Player || dmgSource.CauseEntity.Class == "EntityPlayer")
-                {
-                    string damageTypeOutput = "";
-                    switch (dmgSource.Type)
-                    {
-                        case EnumDamageType.SlashingAttack:
-                            damageTypeOutput = "Slashing";
-                            break;
-                        case EnumDamageType.PiercingAttack:
-                            damageTypeOutput = "Piercing";
-                            break;
-                        case EnumDamageType.BluntAttack:
-                            damageTypeOutput = "Blunt";
-                            break;
-                        default:
-                            damageTypeOutput = "Unknown";
-                            break;
-                    }
-                    msg = "Dealt " + damage + " " + damageTypeOutput + " damage to " + creatureName;
-                } 
-                string PlayerUID = eplr.PlayerUID;
-                (World.PlayerByUid(PlayerUID) as IServerPlayer).SendMessage(GlobalConstants.DamageLogChatGroup, msg, EnumChatType.Notification);
-            }
-        }
-
         public override void StartServerSide(ICoreServerAPI api)
         {
+            OutgoingDamageLogModSystem.api = api;
             if (!Harmony.HasAnyPatches(Mod.Info.ModID))
             {
                 harmony = new Harmony(Mod.Info.ModID);
@@ -63,9 +24,36 @@ namespace OutgoingDamageLog
             }
         }
 
-        public override void StartClientSide(ICoreClientAPI api)
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Entity), nameof(Entity.OnHurt))]
+        public static void OutgoingDamageLogPlayer(Entity __instance, DamageSource dmgSource, float damage)
         {
+            IWorldAccessor World = __instance.World;
+            if (World?.Side == EnumAppSide.Server && (dmgSource.Source == EnumDamageSource.Player || dmgSource.CauseEntity?.Class == "EntityPlayer") && damage >= 0)
+            {
+                
+                string creatureName = Lang.Get("prefixandcreature-" + __instance.Code.Path.Replace("-", ""));
+                EntityPlayer eplr = dmgSource.GetCauseEntity() as EntityPlayer;
+                string damageTypeOutput = "";
+                switch (dmgSource.Type)
+                {
+                    case EnumDamageType.SlashingAttack:
+                        damageTypeOutput = Lang.Get("outgoingdamagelog:slashing");
+                        break;
+                    case EnumDamageType.PiercingAttack:
+                        damageTypeOutput = Lang.Get("outgoingdamagelog:piercing");
+                        break;
+                    case EnumDamageType.BluntAttack:
+                        damageTypeOutput = Lang.Get("outgoingdamagelog:blunt");
+                        break;
+                    default:
+                        damageTypeOutput = Lang.Get("outgoingdamagelog:unknown");
+                        break;
+                }
+                string msg = Lang.Get("outgoingdamagelog:damage-output", damage, damageTypeOutput, creatureName);
+                string PlayerUID = eplr.PlayerUID;
+                (World.PlayerByUid(PlayerUID) as IServerPlayer).SendMessage(GlobalConstants.DamageLogChatGroup, msg, EnumChatType.Notification);
+            }
         }
-
     }
 }
