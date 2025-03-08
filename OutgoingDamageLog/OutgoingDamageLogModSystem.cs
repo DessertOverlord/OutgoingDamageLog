@@ -31,7 +31,6 @@ namespace OutgoingDamageLog
             IWorldAccessor World = __instance.World;
             if (World?.Side == EnumAppSide.Server && (dmgSource.Source == EnumDamageSource.Player || dmgSource.CauseEntity?.Class == "EntityPlayer") && damage >= 0)
             {
-                
                 string creatureName = Lang.Get("prefixandcreature-" + __instance.Code.Path.Replace("-", ""));
                 EntityPlayer eplr = dmgSource.GetCauseEntity() as EntityPlayer;
                 string damageTypeOutput = "";
@@ -55,5 +54,10 @@ namespace OutgoingDamageLog
                 (World.PlayerByUid(PlayerUID) as IServerPlayer).SendMessage(GlobalConstants.DamageLogChatGroup, msg, EnumChatType.Notification);
             }
         }
+        public override void Dispose()
+        {
+            harmony?.UnpatchAll(Mod.Info.ModID);
+        }
     }
 }
+
