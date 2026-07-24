@@ -1,11 +1,8 @@
 ﻿using HarmonyLib;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
 using Vintagestory.API.Common.Entities;
-using Vintagestory;
-using System.Collections.Generic;
 
 namespace OutgoingDamageLog
 {
@@ -31,7 +28,7 @@ namespace OutgoingDamageLog
             IWorldAccessor World = __instance.World;
             if (World?.Side == EnumAppSide.Server && (dmgSource.Source == EnumDamageSource.Player || dmgSource.CauseEntity?.Class == "EntityPlayer") && damage >= 0)
             {
-                string creatureName = Lang.Get("prefixandcreature-" + __instance.Code.Path.Replace("-", ""));
+                string creatureName = Lang.Get("prefixandcreature-" + __instance.Code.Path);
                 EntityPlayer eplr = dmgSource.GetCauseEntity() as EntityPlayer;
                 string damageTypeOutput = "";
                 switch (dmgSource.Type)
@@ -49,7 +46,7 @@ namespace OutgoingDamageLog
                         damageTypeOutput = Lang.Get("outgoingdamagelog:unknown");
                         break;
                 }
-                string msg = Lang.Get("outgoingdamagelog:damage-output", damage, damageTypeOutput, creatureName);
+                string msg = Lang.Get("outgoingdamagelog:damage-output", damage.ToString("#.##"), damageTypeOutput, creatureName);
                 string PlayerUID = eplr.PlayerUID;
                 (World.PlayerByUid(PlayerUID) as IServerPlayer).SendMessage(GlobalConstants.DamageLogChatGroup, msg, EnumChatType.Notification);
             }
